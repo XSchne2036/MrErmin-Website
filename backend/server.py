@@ -96,7 +96,78 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     google_token: str
 
-# Add your routes to the router instead of directly to app
+# Helper Functions
+def create_access_token(user_id: str, expires_delta: Optional[timedelta] = None):
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=30)  # 30 days for persistent login
+    
+    to_encode = {"user_id": user_id, "exp": expire}
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id: str = payload.get("user_id")
+        if user_id is None:
+            return None
+        return user_id
+    except jwt.PyJWTError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    user_id = verify_token(credentials.credentials)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    
+    user = await db.users.find_one({"id": user_id})
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return User(**user)
+
+def generate_verification_token():
+    return secrets.token_urlsafe(32)
+
+async def send_verification_email(email: str, token: str):
+    """Send email verification (optional - requires SMTP configuration)"""
+    if not SMTP_USERNAME or not SMTP_PASSWORD:
+        logger.info(f"Email verification disabled. Token for {email}: {token}")
+        return
+    
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = SMTP_USERNAME
+        msg['To'] = email
+        msg['Subject'] = "E-Mail Bestätigung - Mr Ermin Chat"
+        
+        body = f"""
+        Hallo!
+        
+        Bitte bestätigen Sie Ihre E-Mail-Adresse für den Mr Ermin Chat:
+        
+        Bestätigungscode: {token}
+        
+        Vielen Dank!
+        Mr Ermin Team
+        """
+        
+        msg.attach(MIMEText(body, 'plain'))
+        
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        text = msg.as_string()
+        server.sendmail(SMTP_USERNAME, email, text)
+        server.quit()
+        
+        logger.info(f"Verification email sent to {email}")
+    except Exception as e:
+        logger.error(f"Failed to send email to {email}: {str(e)}")
+
+# Routes
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
