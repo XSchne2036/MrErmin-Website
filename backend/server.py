@@ -52,6 +52,50 @@ class StatusCheck(BaseModel):
 class StatusCheckCreate(BaseModel):
     client_name: str
 
+# Chat Models
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class Chat(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    title: str
+    messages: List[ChatMessage] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ChatCreate(BaseModel):
+    title: str = "Neuer Chat"
+
+class ChatUpdate(BaseModel):
+    title: Optional[str] = None
+
+class MessageAdd(BaseModel):
+    role: str
+    content: str
+
+# User Models
+class User(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    email: EmailStr
+    name: str
+    picture: Optional[str] = None
+    google_id: str
+    verified: bool = False
+    verification_token: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    name: str
+    picture: Optional[str] = None
+    google_id: str
+
+class UserLogin(BaseModel):
+    google_token: str
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
