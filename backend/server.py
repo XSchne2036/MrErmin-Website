@@ -168,6 +168,7 @@ async def send_verification_email(email: str, token: str):
         logger.error(f"Failed to send email to {email}: {str(e)}")
 
 # Routes
+# Original routes
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -183,6 +184,150 @@ async def create_status_check(input: StatusCheckCreate):
 async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
     return [StatusCheck(**status_check) for status_check in status_checks]
+
+# User Authentication Routes
+@api_router.post("/auth/login")
+async def login_user(user_data: UserCreate):
+    """Login or create user with Google OAuth data"""
+    try:
+        # Check if user exists
+        existing_user = await db.users.find_one({"google_id": user_data.google_id})
+        
+        if existing_user:
+            user = User(**existing_user)
+        else:
+            # Create new user
+            verification_token = generate_verification_token()
+            user_dict = user_data.dict()
+            user_obj = User(**user_dict, verification_token=verification_token)
+            await db.users.insert_one(user_obj.dict())
+            
+            # Send verification email (optional)
+            await send_verification_email(user_data.email, verification_token)
+            user = user_obj
+        
+        # Create access token
+        access_token = create_access_token(user.id)
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "name": user.name,
+                "picture": user.picture,
+                "verified": user.verified
+            }
+        }
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/auth/verify-email")
+async def verify_email(token: str):
+    """Verify email with token"""
+    user = await db.users.find_one({"verification_token": token})
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid verification token")
+    
+    await db.users.update_one(
+        {"id": user["id"]}, 
+        {"$set": {"verified": True, "verification_token": None}}
+    )
+    
+    return {"message": "Email verified successfully"}
+
+@api_router.get("/auth/me")
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    """Get current user information"""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "picture": current_user.picture,
+        "verified": current_user.verified
+    }
+
+# Chat Routes
+@api_router.get("/chats", response_model=List[Chat])
+async def get_user_chats(current_user: User = Depends(get_current_user)):
+    """Get all chats for the current user"""
+    chats = await db.chats.find({"user_id": current_user.id}).sort("updated_at", -1).to_list(100)
+    return [Chat(**chat) for chat in chats]
+
+@api_router.post("/chats", response_model=Chat)
+async def create_chat(chat_data: ChatCreate, current_user: User = Depends(get_current_user)):
+    """Create a new chat"""
+    chat_dict = chat_data.dict()
+    chat_dict["user_id"] = current_user.id
+    chat_obj = Chat(**chat_dict)
+    await db.chats.insert_one(chat_obj.dict())
+    return chat_obj
+
+@api_router.get("/chats/{chat_id}", response_model=Chat)
+async def get_chat(chat_id: str, current_user: User = Depends(get_current_user)):
+    """Get a specific chat"""
+    chat = await db.chats.find_one({"id": chat_id, "user_id": current_user.id})
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    return Chat(**chat)
+
+@api_router.put("/chats/{chat_id}", response_model=Chat)
+async def update_chat(chat_id: str, chat_update: ChatUpdate, current_user: User = Depends(get_current_user)):
+    """Update chat title"""
+    update_data = {k: v for k, v in chat_update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.utcnow()
+    
+    result = await db.chats.update_one(
+        {"id": chat_id, "user_id": current_user.id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    
+    updated_chat = await db.chats.find_one({"id": chat_id, "user_id": current_user.id})
+    return Chat(**updated_chat)
+
+@api_router.delete("/chats/{chat_id}")
+async def delete_chat(chat_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a chat"""
+    result = await db.chats.delete_one({"id": chat_id, "user_id": current_user.id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    return {"message": "Chat deleted successfully"}
+
+@api_router.post("/chats/{chat_id}/messages")
+async def add_message_to_chat(chat_id: str, message: MessageAdd, current_user: User = Depends(get_current_user)):
+    """Add a message to a chat"""
+    # Check if chat exists and belongs to user
+    chat = await db.chats.find_one({"id": chat_id, "user_id": current_user.id})
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    
+    # Create message
+    chat_message = ChatMessage(role=message.role, content=message.content)
+    
+    # Update chat with new message
+    await db.chats.update_one(
+        {"id": chat_id, "user_id": current_user.id},
+        {
+            "$push": {"messages": chat_message.dict()},
+            "$set": {"updated_at": datetime.utcnow()}
+        }
+    )
+    
+    return {"message": "Message added successfully"}
+
+@api_router.get("/chats/{chat_id}/messages")
+async def get_chat_messages(chat_id: str, current_user: User = Depends(get_current_user)):
+    """Get messages from a chat"""
+    chat = await db.chats.find_one({"id": chat_id, "user_id": current_user.id})
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    
+    return {"messages": chat.get("messages", [])}
 
 # Include the router in the main app
 app.include_router(api_router)
