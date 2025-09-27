@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr Ermin - Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        :root {
+            --sidebar-bg: #fff8f0;
+            --main-bg: #fdfcfb;
+            --chat-bg: #ffffff;
+            --input-bg: #fce9d8;
+            --accent: #f97316;
+            --accent-dark: #c2410c;
+            --text-primary: #1d1d1f;
+            --text-secondary: #555;
+            --user-msg: #f97316;
+            --ai-msg: #f1f3f6;
+            --border-radius: 14px;
+        }
+        body {
+            background-color: var(--main-bg);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            border-right: 3px solid var(--accent);
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: var(--chat-bg);
+            border-bottom: 2px solid var(--accent);
+        }
+        .logo img {
+            max-width: 140px;
+            height: auto;
+        }
+        .new-chat-btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            margin: 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+        .new-chat-btn:hover {
+            background-color: var(--accent-dark);
+        }
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 16px;
+        }
+        .history-item {
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            background: #fff;
+            border: 1px solid #eee;
+            position: relative;
+        }
+        .history-item.active {
+            background-color: rgba(249, 115, 22, 0.15);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+        .history-item .delete-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 14px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .history-item:hover .delete-btn {
+            opacity: 1;
+        }
+        .history-item .delete-btn:hover {
+            color: #f97316;
+        }
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .model-info {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 12px;
+            border-radius: var(--border-radius);
+            font-size: 14px;
+        }
+        .model-name {
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--accent);
+        }
+        .model-stats {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        /* Model Selector */
+        .model-selector {
+            margin-top: 12px;
+            padding: 12px;
+            background: #fff;
+            border-radius: var(--border-radius);
+            border: 1px solid #eee;
+        }
+        .model-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            padding: 16px 24px;
+            border-bottom: 3px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--sidebar-bg);
+        }
+        .chat-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: var(--chat-bg);
+        }
+        .message {
+            display: flex;
+            gap: 16px;
+            max-width: 85%;
+        }
+        .user-message {
+            align-self: flex-end;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .user-avatar {
+            background: var(--accent);
+            color: #fff;
+        }
+        .ai-avatar {
+            background: #333;
+            color: #fff;
+        }
+        .message-content {
+            padding: 14px 18px;
+            border-radius: var(--border-radius);
+            line-height: 1.5;
+        }
+        .user-message .message-content {
+            background-color: var(--user-msg);
+            color: white;
+        }
+        .ai-message .message-content {
+            background-color: var(--ai-msg);
+            color: var(--text-primary);
+        }
+        /* Link-Styling für AI-Antworten */
+        .ai-message .message-content a {
+            color: #2563eb;
+            text-decoration: underline;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .ai-message .message-content a:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+        .input-container {
+            padding: 20px;
+            background: var(--sidebar-bg);
+        }
+        .input-box {
+            background-color: var(--input-bg);
+            border-radius: var(--border-radius);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .message-input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            resize: none;
+            outline: none;
+        }
+        .send-btn {
+            background-color: var(--accent);
+            border: none;
+            color: white;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .send-btn:hover {
+            background-color: var(--accent-dark);
+        }
+        .send-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .input-footer {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .branding {
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        /* Login Overlay */
+        #loginOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #loginOverlay > div {
+            background: #fff;
+            padding: 28px;
+            border-radius: 12px;
+            max-width: 420px;
+            width: 95%;
+            text-align: left;
+            color: #111;
+        }
+        #loginOverlay h2 {
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+        #loginOverlay p {
+            color: #333;
+            margin-bottom: 12px;
+        }
+        #loginOverlay label {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 13px;
+            color: #444;
+        }
+        #loginOverlay button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        #loginOverlay #continueBtn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+        }
+        #loginOverlay #guestBtn {
+            background: transparent;
+            border: 1px solid #ddd;
+        }
+        #loginOverlay #continueBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* Loading Overlay */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            font-size: 18px;
+            color: #555;
+        }
+        #loadingOverlay i {
+            font-size: 48px;
+            color: var(--accent);
+            margin-bottom: 16px;
+            animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* User Info */
+        .user-info {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            font-size: 13px;
+            border: 1px solid #eee;
+        }
+        .user-info img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 14px 18px;
+        }
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #999;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay">
+        <i class="fas fa-spinner"></i>
+        <div>Verbinde mit Mr Ermin API...</div>
+    </div>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" style="display:none;">
+        <div>
+            <h2>Bitte einloggen</h2>
+            <p>Melde dich an, um den Chat nutzen zu können. Wir verwenden Google Login zur sicheren Authentifizierung.</p>
+            <div id="gSignInWrapper"></div>
+            <div style="margin-top:12px;">
+                <label>
+                    <input type="checkbox" id="consentCheckbox">
+                    Ich stimme der <a href="/privacy.html" target="_blank">Datenschutzerklärung</a> und der Speicherung meiner E‑Mail zu.
+                </label>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+                <button id="guestBtn">Als Gast fortfahren</button>
+                <button id="continueBtn" disabled>Fortfahren</button>
+            </div>
+            <p style="font-size:12px;color:#666;margin-top:12px;">
+                Hinweis: Der API-Endpunkt ist verborgen, damit er nicht missbraucht werden kann. Ihre Anfragen werden datenschutzkonform verarbeitet. <a href="/privacy.html" target="_blank">Mehr</a>
+            </p>
+        </div>
+    </div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <img src="logo.png" alt="Mr Ermin Logo">
+        </div>
+        <button class="new-chat-btn" id="newChatBtn">
+            <i class="fas fa-plus"></i>
+            <span>Neuer Chat</span>
+        </button>
+        <div class="chat-history" id="chatHistory">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+        <div class="sidebar-footer">
+            <div class="model-info">
+                <div class="model-name">Mr Ermin AI</div>
+                <div class="model-stats">Kreativmodus • Optimiert für Dialog</div>
+            </div>
+            <!-- Model Selector -->
+            <div class="model-selector">
+                <label for="modelSelect">Modell auswählen:</label>
+                <select id="modelSelect" disabled>
+                    <option value="">Lade Modelle...</option>
+                </select>
+            </div>
+            <!-- User Info -->
+            <div class="user-info" id="userInfo" style="display:none;">
+                <div><strong>👤 Angemeldet als:</strong></div>
+                <div id="userName"></div>
+                <div id="userEmail"></div>
+                <button class="logout-btn" id="logoutBtn">Ausloggen</button>
+            </div>
+        </div>
+    </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="chat-header">
+            <div class="chat-title" id="currentChatTitle">Willkommen bei Mr Ermin</div>
+        </div>
+        <div class="chat-container" id="chatContainer">
+            <!-- Wird dynamisch befüllt -->
+        </div>
+        <div class="input-container">
+            <div class="input-box">
+                <textarea class="message-input" id="messageInput" placeholder="Nachricht eingeben..." rows="1" disabled></textarea>
+                <button class="send-btn" id="sendBtn" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="input-footer">
+                <div class="branding">© Mr Ermin – Gute Ideen, gute Antworten</div>
+                <div>Shift + Enter für neue Zeile</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // 🔑 Konfiguration
+        const GOOGLE_CLIENT_ID = '611753612325-b1m49felg1moh1ublib3udb4n1n8k2j0.apps.googleusercontent.com';
+        
+        // 🌐 Globale Variablen
+        let API_BASE_URL = '';
+        let BACKEND_URL = '';
+        let CURRENT_MODEL = '';
+        let chatSessions = {}; // Lokaler Cache für Gast-Modus
+        let activeChatId = null;
+        let currentUser = null;
+        let isGuestMode = false;
+        let authToken = null;
+        let chatCounter = 1;
+        let isGenerating = false;
+        let currentGenerationId = null;
+        let pendingMessages = {};
+        
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loginOverlay = document.getElementById('loginOverlay');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const modelSelect = document.getElementById('modelSelect');
+        const chatContainer = document.getElementById('chatContainer');
+        const chatHistory = document.getElementById('chatHistory');
+        const currentChatTitle = document.getElementById('currentChatTitle');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const userInfo = document.getElementById('userInfo');
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
+        // 🚀 App initialisieren
+        async function initApp() {
+            try {
+                // 1. Lade URLs
+                await loadUrls();
+                
+                // 2. Lade Modelle von LMStudio
+                await loadModels();
+                
+                // 3. Prüfe gespeicherte Session
+                const savedToken = localStorage.getItem('mrermin_auth_token');
+                const savedUser = localStorage.getItem('mrermin_user');
+                
+                if (savedToken && savedUser) {
+                    try {
+                        authToken = savedToken;
+                        currentUser = JSON.parse(savedUser);
+                        
+                        // Validiere Token mit Backend
+                        const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${authToken}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const userData = await response.json();
+                            currentUser = userData;
+                            showUserInfo();
+                            await loadUserChats();
+                            finishLogin();
+                            loadingOverlay.style.display = 'none';
+                            return;
+                        } else {
+                            // Token ungültig
+                            localStorage.removeItem('mrermin_auth_token');
+                            localStorage.removeItem('mrermin_user');
+                            authToken = null;
+                            currentUser = null;
+                        }
+                    } catch (error) {
+                        console.error('Fehler beim Validieren der Session:', error);
+                        localStorage.removeItem('mrermin_auth_token');
+                        localStorage.removeItem('mrermin_user');
+                        authToken = null;
+                        currentUser = null;
+                    }
+                }
+                
+                // 4. Zeige Login Overlay
+                loadingOverlay.style.display = 'none';
+                loginOverlay.style.display = 'flex';
+                
+                // 5. Google Identity Services laden
+                loadGoogleSignIn();
+                
+                // 6. Event Listeners für Login
+                setupLoginListeners();
+            } catch (error) {
+                loadingOverlay.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="color: #f97316; font-size: 48px; margin-bottom: 16px;"></i>
+                    <div style="color: #c2410c; font-weight: 600; margin-bottom: 8px;">Fehler beim Start</div>
+                    <div style="font-size: 14px; color: #555; text-align: center; max-width: 80%;">${error.message}</div>
+                `;
+                console.error("Init-Fehler:", error);
+            }
+        }
+        
+        async function loadUrls() {
+            try {
+                // 1. LMStudio API URL
+                const urlResponse = await fetch('apiurl.txt');
+                if (!urlResponse.ok) throw new Error(`HTTP ${urlResponse.status}: ${urlResponse.statusText}`);
+                const urlText = await urlResponse.text();
+                API_BASE_URL = urlText.trim();
+                if (!API_BASE_URL) throw new Error('apiurl.txt ist leer');
+                if (!API_BASE_URL.startsWith('http')) throw new Error('Ungültige URL in apiurl.txt');
+                
+                // 2. Backend URL (könnte aus separater Datei oder fest kodiert sein)
+                // Für jetzt verwende die gleiche URL, aber mit anderem Port oder Pfad
+                // Sie können das anpassen, wenn Ihr Backend woanders läuft
+                BACKEND_URL = window.location.origin; // Verwendet die aktuelle Domain
+                
+            } catch (error) {
+                throw new Error('Fehler beim Laden der API-URLs: ' + error.message);
+            }
+        }
+        
+        async function loadModels() {
+            try {
+                const response = await fetch(API_BASE_URL + '/v1/models');
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const data = await response.json();
+                modelSelect.innerHTML = '';
+                const models = data.data || [];
+                if (models.length === 0) {
+                    throw new Error('Keine Modelle gefunden');
+                }
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.id;
+                    modelSelect.appendChild(option);
+                });
+                CURRENT_MODEL = models[0].id;
+                modelSelect.value = CURRENT_MODEL;
+                modelSelect.disabled = false;
+            } catch (error) {
+                modelSelect.innerHTML = '<option value="">Fehler beim Laden</option>';
+                console.error('Fehler beim Laden der Modelle:', error);
+                throw error;
+            }
+        }
+        
+        function loadGoogleSignIn() {
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client';
+            script.async = true;
+            script.defer = true;
+            script.onload = () => {
+                if (window.google) {
+                    window.google.accounts.id.initialize({
+                        client_id: GOOGLE_CLIENT_ID,
+                        callback: handleCredentialResponse
+                    });
+                    window.google.accounts.id.renderButton(
+                        document.getElementById('gSignInWrapper'),
+                        { theme: 'outline', size: 'large', text: 'signin_with' }
+                    );
+                }
+            };
+            document.head.appendChild(script);
+        }
+        
+        function setupLoginListeners() {
+            const consentCheckbox = document.getElementById('consentCheckbox');
+            const continueBtn = document.getElementById('continueBtn');
+            const guestBtn = document.getElementById('guestBtn');
+            
+            consentCheckbox.addEventListener('change', () => {
+                continueBtn.disabled = !(consentCheckbox.checked && currentUser);
+            });
+            
+            continueBtn.addEventListener('click', async () => {
+                if (!currentUser) return;
+                
+                try {
+                    // Login mit Backend
+                    const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: currentUser.email,
+                            name: currentUser.name,
+                            picture: currentUser.picture,
+                            google_id: currentUser.sub
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        authToken = data.access_token;
+                        currentUser = data.user;
+                        
+                        // Speichere Session
+                        localStorage.setItem('mrermin_auth_token', authToken);
+                        localStorage.setItem('mrermin_user', JSON.stringify(currentUser));
+                        
+                        showUserInfo();
+                        await loadUserChats();
+                        isGuestMode = false;
+                    } else {
+                        throw new Error('Login fehlgeschlagen');
+                    }
+                } catch (error) {
+                    console.error('Login-Fehler:', error);
+                    alert('Anmeldung fehlgeschlagen. Versuchen Sie es erneut.');
+                    return;
+                }
+                
+                finishLogin();
+                loginOverlay.style.display = 'none';
+            });
+            
+            guestBtn.addEventListener('click', () => {
+                isGuestMode = true;
+                finishLogin();
+                loginOverlay.style.display = 'none';
+            });
+            
+            logoutBtn.addEventListener('click', () => {
+                logout();
+            });
+        }
+        
+        function handleCredentialResponse(response) {
+            try {
+                const payload = parseJwt(response.credential);
+                currentUser = {
+                    email: payload.email,
+                    name: payload.name,
+                    picture: payload.picture,
+                    sub: payload.sub
+                };
+                document.getElementById('continueBtn').disabled = !document.getElementById('consentCheckbox').checked;
+            } catch (e) {
+                console.error('Fehler beim Verarbeiten des Tokens', e);
+            }
+        }
+        
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+            return JSON.parse(jsonPayload);
+        }
+        
+        function showUserInfo() {
+            if (currentUser && !isGuestMode) {
+                userName.textContent = currentUser.name;
+                userEmail.textContent = currentUser.email;
+                if (currentUser.picture) {
+                    userName.innerHTML = `<img src="${currentUser.picture}" alt="${currentUser.name}"> ${currentUser.name}`;
+                }
+                userInfo.style.display = 'block';
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('mrermin_auth_token');
+            localStorage.removeItem('mrermin_user');
+            authToken = null;
+            currentUser = null;
+            isGuestMode = false;
+            chatSessions = {};
+            activeChatId = null;
+            
+            // UI zurücksetzen
+            chatContainer.innerHTML = '';
+            chatHistory.innerHTML = '';
+            userInfo.style.display = 'none';
+            currentChatTitle.textContent = 'Willkommen bei Mr Ermin';
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            
+            // Zum Login zurückkehren
+            loginOverlay.style.display = 'flex';
+        }
+        
+        async function loadUserChats() {
+            if (isGuestMode) return;
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/chats`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const chats = await response.json();
+                    chatHistory.innerHTML = '';
+                    
+                    // Lade Chats in lokalen Cache
+                    chatSessions = {};
+                    chats.forEach(chat => {
+                        chatSessions[chat.id] = {
+                            title: chat.title,
+                            messages: chat.messages || [],
+                            serverSynced: true
+                        };
+                        addChatToHistory(chat.id, chat.title);
+                    });
+                    
+                    if (chats.length > 0) {
+                        setActiveChat(chats[0].id);
+                    }
+                }
+            } catch (error) {
+                console.error('Fehler beim Laden der Chats:', error);
+            }
+        }
+        
+        function finishLogin() {
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+            
+            // Ersten Chat erstellen, wenn noch keine vorhanden
+            if (Object.keys(chatSessions).length === 0) {
+                createNewChat();
+            }
+            
+            // Event Listeners
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            sendBtn.addEventListener('click', sendMessage);
+            newChatBtn.addEventListener('click', createNewChat);
+            modelSelect.addEventListener('change', (e) => {
+                CURRENT_MODEL = e.target.value;
+                console.log('🎯 Modell gewechselt zu:', CURRENT_MODEL);
+            });
+        }
+        
+        async function createNewChat() {
+            const chatId = isGuestMode ? `guest-chat-${chatCounter++}` : `chat-${Date.now()}`;
+            const initialTitle = 'Neuer Chat';
+            
+            if (isGuestMode) {
+                // Gast-Modus: nur lokal
+                chatSessions[chatId] = {
+                    title: initialTitle,
+                    messages: [],
+                    serverSynced: false
+                };
+                addChatToHistory(chatId, initialTitle);
+                setActiveChat(chatId);
+                addMessageToChat('assistant', 'Hallo! Ich bin Mr Ermin. Worüber möchtest du sprechen?', false, chatId);
+                chatSessions[chatId].messages.push({ role: 'assistant', content: 'Hallo! Ich bin Mr Ermin. Worüber möchtest du sprechen?' });
+            } else {
+                // Angemeldeter Benutzer: mit Backend
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/chats`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            title: initialTitle
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const chat = await response.json();
+                        chatSessions[chat.id] = {
+                            title: chat.title,
+                            messages: chat.messages || [],
+                            serverSynced: true
+                        };
+                        addChatToHistory(chat.id, chat.title);
+                        setActiveChat(chat.id);
+                        addMessageToChat('assistant', 'Hallo! Ich bin Mr Ermin. Worüber möchtest du sprechen?', false, chat.id);
+                        
+                        // Erste Nachricht auch an Server senden
+                        await addMessageToServer(chat.id, 'assistant', 'Hallo! Ich bin Mr Ermin. Worüber möchtest du sprechen?');
+                    } else {
+                        throw new Error('Chat konnte nicht erstellt werden');
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Erstellen des Chats:', error);
+                    // Fallback zu lokalem Chat
+                    createNewChat();
+                }
+            }
+        }
+        
+        function addChatToHistory(chatId, title) {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.dataset.chat = chatId;
+            
+            const chatContent = document.createElement('div');
+            chatContent.style.flex = '1';
+            chatContent.style.display = 'flex';
+            chatContent.style.alignItems = 'center';
+            chatContent.style.gap = '12px';
+            chatContent.innerHTML = `<i class="fas fa-comment"></i><span>${title}</span>`;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteChat(chatId);
+            });
+            
+            item.appendChild(chatContent);
+            item.appendChild(deleteBtn);
+            
+            chatContent.addEventListener('click', () => setActiveChat(chatId));
+            
+            // Neuester Chat immer oben
+            const firstChild = chatHistory.firstChild;
+            if (firstChild) {
+                chatHistory.insertBefore(item, firstChild);
+            } else {
+                chatHistory.appendChild(item);
+            }
+        }
+        
+        async function deleteChat(chatId) {
+            if (!confirm('Möchten Sie diesen Chat wirklich löschen?')) return;
+            
+            // Lokal löschen
+            delete chatSessions[chatId];
+            
+            // Aus UI entfernen
+            const historyItem = document.querySelector(`.history-item[data-chat="${chatId}"]`);
+            if (historyItem) {
+                historyItem.remove();
+            }
+            
+            // Wenn es der aktive Chat war, zu anderem Chat wechseln
+            if (activeChatId === chatId) {
+                const remainingChats = Object.keys(chatSessions);
+                if (remainingChats.length > 0) {
+                    setActiveChat(remainingChats[0]);
+                } else {
+                    createNewChat();
+                }
+            }
+            
+            // Von Server löschen (falls angemeldet)
+            if (!isGuestMode) {
+                try {
+                    await fetch(`${BACKEND_URL}/api/chats/${chatId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                } catch (error) {
+                    console.error('Fehler beim Löschen des Chats vom Server:', error);
+                }
+            }
+        }
+        
+        function setActiveChat(chatId) {
+            document.querySelectorAll('.history-item.active').forEach(el => el.classList.remove('active'));
+            const targetItem = document.querySelector(`.history-item[data-chat="${chatId}"]`);
+            if (targetItem) {
+                targetItem.classList.add('active');
+            }
+            activeChatId = chatId;
+            renderChat(chatId);
+        }
+        
+        function renderChat(chatId) {
+            chatContainer.innerHTML = '';
+            const session = chatSessions[chatId];
+            if (!session) return;
+            session.messages.forEach(msg => {
+                addMessageToChat(msg.role === 'user' ? 'user' : 'assistant', msg.content, false, chatId);
+            });
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            currentChatTitle.textContent = session.title;
+        }
+        
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            const currentChatId = activeChatId;
+            messageInput.value = '';
+            
+            if (isGenerating && currentChatId === activeChatId) {
+                if (!pendingMessages[currentChatId]) {
+                    pendingMessages[currentChatId] = [];
+                }
+                pendingMessages[currentChatId].push(message);
+                console.log('Nachricht gepuffert:', message);
+                return;
+            }
+            
+            isGenerating = true;
+            sendBtn.disabled = true;
+            messageInput.disabled = true;
+            
+            addMessageToChat('user', message, true, currentChatId);
+            
+            // Titel bei ERSTER Benutzernachricht setzen
+            if (chatSessions[currentChatId].messages.length === 2) {
+                await updateChatTitle(currentChatId, message);
+            }
+            
+            const typingDiv = showTypingIndicator(currentChatId);
+            const generationId = Date.now();
+            currentGenerationId = generationId;
+            
+            try {
+                let messagesToSend = [...chatSessions[currentChatId].messages];
+                
+                if (pendingMessages[currentChatId] && pendingMessages[currentChatId].length > 0) {
+                    for (let pendingMsg of pendingMessages[currentChatId]) {
+                        messagesToSend.push({ role: 'user', content: pendingMsg });
+                    }
+                    pendingMessages[currentChatId] = [];
+                }
+                
+                if (currentGenerationId !== generationId) {
+                    console.log('Generierung abgebrochen, da neue Anfrage eingegangen ist');
+                    typingDiv.remove();
+                    return;
+                }
+                
+                const response = await fetch(API_BASE_URL + '/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: messagesToSend,
+                        model: CURRENT_MODEL,
+                        temperature: 0.7,
+                        max_tokens: -1,
+                        stream: false
+                    })
+                });
+                
+                if (currentGenerationId !== generationId) {
+                    console.log('Generierung abgebrochen, da neue Anfrage eingegangen ist');
+                    typingDiv.remove();
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices?.[0]?.message?.content || data.result || "Entschuldigung, ich habe keine Antwort erhalten.";
+                
+                if (activeChatId === currentChatId) {
+                    typingDiv.remove();
+                }
+                
+                // Streaming-Simulation
+                let currentText = '';
+                const words = aiResponse.split(' ');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message ai-message';
+                messageDiv.dataset.chatId = currentChatId;
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'avatar ai-avatar';
+                avatarDiv.innerHTML = '<img src="logo.png" alt="Mr Ermin" style="width: 40px; height: 40px; border-radius: 50%;">';
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.innerHTML = '';
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
+                
+                if (activeChatId === currentChatId) {
+                    chatContainer.appendChild(messageDiv);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+                
+                for (let i = 0; i < words.length; i++) {
+                    currentText += words[i] + ' ';
+                    let processedText = processLinks(currentText);
+                    contentDiv.innerHTML = processedText.replace(/\n/g, '<br>');
+                    
+                    if (currentGenerationId !== generationId) {
+                        console.log('Generierung abgebrochen, da neue Anfrage eingegangen ist');
+                        return;
+                    }
+                    
+                    if (activeChatId === currentChatId) {
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, Math.min(50 + Math.random() * 50, 100)));
+                }
+                
+                // Nachricht speichern
+                chatSessions[currentChatId].messages.push({ role: 'assistant', content: aiResponse });
+                
+                // Bei angemeldeten Benutzern auch auf Server speichern
+                if (!isGuestMode) {
+                    await addMessageToServer(currentChatId, 'assistant', aiResponse);
+                }
+                
+                await updateChatTitle(currentChatId, aiResponse);
+                
+            } catch (error) {
+                if (activeChatId === currentChatId) {
+                    const typingIndicator = document.querySelector('.typing-indicator');
+                    if (typingIndicator) {
+                        typingIndicator.parentElement.parentElement.remove();
+                    }
+                }
+                
+                addMessageToChat('assistant', `🚫 Fehler: ${error.message}`, true, currentChatId);
+                console.error("API Fehler:", error);
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+                
+                if (pendingMessages[currentChatId] && pendingMessages[currentChatId].length > 0) {
+                    console.log('Verarbeite gepufferte Nachrichten:', pendingMessages[currentChatId].length);
+                    const combinedMessage = pendingMessages[currentChatId].join('\n');
+                    pendingMessages[currentChatId] = [];
+                    addMessageToChat('user', combinedMessage, true, currentChatId);
+                    processCombinedMessage(currentChatId, combinedMessage);
+                }
+            }
+        }
+        
+        async function addMessageToServer(chatId, role, content) {
+            if (isGuestMode) return;
+            
+            try {
+                await fetch(`${BACKEND_URL}/api/chats/${chatId}/messages`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        role: role,
+                        content: content
+                    })
+                });
+            } catch (error) {
+                console.error('Fehler beim Speichern der Nachricht:', error);
+            }
+        }
+        
+        async function processCombinedMessage(chatId, combinedMessage) {
+            // Ähnlich wie sendMessage, aber für kombinierte gepufferte Nachrichten
+            isGenerating = true;
+            sendBtn.disabled = true;
+            messageInput.disabled = true;
+            
+            const typingDiv = showTypingIndicator(chatId);
+            const generationId = Date.now();
+            currentGenerationId = generationId;
+            
+            try {
+                let messagesToSend = [...chatSessions[chatId].messages];
+                
+                const response = await fetch(API_BASE_URL + '/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: messagesToSend,
+                        model: CURRENT_MODEL,
+                        temperature: 0.7,
+                        max_tokens: -1,
+                        stream: false
+                    })
+                });
+                
+                if (currentGenerationId !== generationId) {
+                    console.log('Generierung abgebrochen, da neue Anfrage eingegangen ist');
+                    typingDiv.remove();
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices?.[0]?.message?.content || data.result || "Entschuldigung, ich habe keine Antwort erhalten.";
+                
+                if (activeChatId === chatId) {
+                    typingDiv.remove();
+                }
+                
+                // Streaming-Simulation...
+                let currentText = '';
+                const words = aiResponse.split(' ');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message ai-message';
+                messageDiv.dataset.chatId = chatId;
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'avatar ai-avatar';
+                avatarDiv.innerHTML = '<img src="logo.png" alt="Mr Ermin" style="width: 40px; height: 40px; border-radius: 50%;">';
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.innerHTML = '';
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
+                
+                if (activeChatId === chatId) {
+                    chatContainer.appendChild(messageDiv);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+                
+                for (let i = 0; i < words.length; i++) {
+                    currentText += words[i] + ' ';
+                    let processedText = processLinks(currentText);
+                    contentDiv.innerHTML = processedText.replace(/\n/g, '<br>');
+                    
+                    if (currentGenerationId !== generationId) {
+                        console.log('Generierung abgebrochen, da neue Anfrage eingegangen ist');
+                        return;
+                    }
+                    
+                    if (activeChatId === chatId) {
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, Math.min(50 + Math.random() * 50, 100)));
+                }
+                
+                chatSessions[chatId].messages.push({ role: 'assistant', content: aiResponse });
+                
+                if (!isGuestMode) {
+                    await addMessageToServer(chatId, 'assistant', aiResponse);
+                }
+                
+                await updateChatTitle(chatId, aiResponse);
+                
+            } catch (error) {
+                if (activeChatId === chatId) {
+                    const typingIndicator = document.querySelector('.typing-indicator');
+                    if (typingIndicator) {
+                        typingIndicator.parentElement.parentElement.remove();
+                    }
+                }
+                
+                addMessageToChat('assistant', `🚫 Fehler: ${error.message}`, true, chatId);
+                console.error("API Fehler:", error);
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+                
+                if (pendingMessages[chatId] && pendingMessages[chatId].length > 0) {
+                    console.log('Verarbeite weitere gepufferte Nachrichten:', pendingMessages[chatId].length);
+                    const combinedMessage = pendingMessages[chatId].join('\n');
+                    pendingMessages[chatId] = [];
+                    addMessageToChat('user', combinedMessage, true, chatId);
+                    processCombinedMessage(chatId, combinedMessage);
+                }
+            }
+        }
+        
+        function processLinks(text) {
+            let processedText = text;
+            
+            const urlRegex = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+            processedText = processedText.replace(urlRegex, function(url) {
+                return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            });
+            
+            const wwwRegex = /(^|\s)(www\.[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?)/g;
+            processedText = processedText.replace(wwwRegex, function(match, space, url) {
+                return `${space}<a href="http://${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            });
+            
+            return processedText;
+        }
+        
+        async function updateChatTitle(chatId, content) {
+            let title = content.split('.')[0].substring(0, 50);
+            if (title.length === 50) title += '...';
+            if (title.trim() === '') title = 'Ohne Titel';
+            
+            chatSessions[chatId].title = title;
+            
+            if (activeChatId === chatId) {
+                currentChatTitle.textContent = title;
+            }
+            
+            const historyItem = document.querySelector(`.history-item[data-chat="${chatId}"] span`);
+            if (historyItem) {
+                historyItem.textContent = title;
+            }
+            
+            // Bei angemeldeten Benutzern auch auf Server aktualisieren
+            if (!isGuestMode) {
+                try {
+                    await fetch(`${BACKEND_URL}/api/chats/${chatId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({
+                            title: title
+                        })
+                    });
+                } catch (error) {
+                    console.error('Fehler beim Aktualisieren des Chat-Titels:', error);
+                }
+            }
+        }
+        
+        function addMessageToChat(role, content, save = true, chatId = activeChatId) {
+            if (chatId === activeChatId) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}-message`;
+                messageDiv.dataset.chatId = chatId;
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = `avatar ${role === 'user' ? 'user-avatar' : 'ai-avatar'}`;
+                avatarDiv.innerHTML = role === 'user' ? '<i class="fas fa-user"></i>' : '<img src="logo.png" alt="Mr Ermin" style="width: 40px; height: 40px; border-radius: 50%;">';
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                
+                let processedContent = processLinks(content);
+                contentDiv.innerHTML = processedContent.replace(/\n/g, '<br>');
+                
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentDiv);
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            
+            if (save && chatId) {
+                chatSessions[chatId].messages.push({ role: role === 'user' ? 'user' : 'assistant', content });
+                
+                // Bei angemeldeten Benutzern auch auf Server speichern
+                if (!isGuestMode && save) {
+                    addMessageToServer(chatId, role === 'user' ? 'user' : 'assistant', content);
+                }
+            }
+        }
+        
+        function showTypingIndicator(chatId) {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai-message';
+            typingDiv.dataset.chatId = chatId;
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar ai-avatar';
+            avatarDiv.innerHTML = '<img src="logo.png" alt="Mr Ermin" style="width: 40px; height: 40px; border-radius: 50%;">';
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'typing-indicator';
+            typingIndicator.innerHTML = `
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            `;
+            contentDiv.appendChild(typingIndicator);
+            typingDiv.appendChild(avatarDiv);
+            typingDiv.appendChild(contentDiv);
+            
+            if (chatId === activeChatId) {
+                chatContainer.appendChild(typingDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            
+            return typingDiv;
+        }
+        
+        // 🚀 Start!
+        initApp();
+    </script>
+</body>
+</html>
