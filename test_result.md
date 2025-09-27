@@ -252,6 +252,7 @@
     - "Enhanced HTML Chat Interface"
     - "User Authentication Integration"
     - "Chat Persistence Logic"
+    - "LMStudio Integration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
