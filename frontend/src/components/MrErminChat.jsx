@@ -780,6 +780,13 @@ export default function MrErminChat() {
           </div>
         </div>
       </div>
+
+      {/* Premium Upgrade Modal */}
+      <PremiumUpgrade 
+        isOpen={showPremiumUpgrade}
+        onClose={() => setShowPremiumUpgrade(false)}
+        currentUser={currentUser}
+      />
     </div>
   );
 }
