@@ -723,15 +723,13 @@ export default function MrErminChat() {
             {activeChat?.title || 'Willkommen bei Mr Ermin'}
           </div>
           
-          {/* Premium Badge für angemeldete Benutzer */}
-          {!isGuestMode && (
-            <button 
-              onClick={() => setShowPremiumUpgrade(true)}
-              className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg"
-            >
-              ✨ Premium Features
-            </button>
-          )}
+          {/* Premium Badge für alle Benutzer */}
+          <button 
+            onClick={() => setShowPremiumUpgrade(true)}
+            className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg"
+          >
+            ✨ Premium Features
+          </button>
         </div>
 
         {/* Chat Container */}
