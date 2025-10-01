@@ -679,11 +679,36 @@ export default function MrErminChat() {
                   <div className="text-gray-600">{currentUser.email}</div>
                 </div>
               </div>
+              
+              {/* Premium Upgrade Button */}
+              <button
+                onClick={() => setShowPremiumUpgrade(true)}
+                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs px-3 py-2 rounded mt-2 hover:from-orange-600 hover:to-orange-700 transition-all duration-200 font-medium"
+              >
+                ✨ Premium Upgrade
+              </button>
+              
               <button
                 onClick={logout}
-                className="bg-red-500 text-white text-xs px-2 py-1 rounded mt-2 hover:bg-red-600"
+                className="bg-red-500 text-white text-xs px-2 py-1 rounded mt-2 hover:bg-red-600 w-full"
               >
                 Ausloggen
+              </button>
+            </div>
+          )}
+          
+          {/* Gast-Modus Premium Hinweis */}
+          {isGuestMode && (
+            <div className="bg-orange-50 p-3 rounded-2xl text-xs border border-orange-200">
+              <div className="font-bold text-orange-700">🎯 Gast-Modus</div>
+              <p className="text-orange-600 mt-1 mb-2">
+                Melden Sie sich an für Premium-Features und Chat-Persistierung!
+              </p>
+              <button
+                onClick={() => setShowLogin(true)}
+                className="w-full bg-orange-500 text-white text-xs px-3 py-2 rounded hover:bg-orange-600 transition-colors"
+              >
+                Jetzt anmelden
               </button>
             </div>
           )}
