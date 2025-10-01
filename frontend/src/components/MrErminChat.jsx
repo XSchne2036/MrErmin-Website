@@ -138,6 +138,7 @@ export default function MrErminChat() {
   // State Management
   const [isLoading, setIsLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
+  const [showPremiumUpgrade, setShowPremiumUpgrade] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [authToken, setAuthToken] = useState(null);
   const [isGuestMode, setIsGuestMode] = useState(false);
