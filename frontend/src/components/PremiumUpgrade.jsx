@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import PayPalPayLater from './PayPalPayLater';
 
 const PremiumFeatures = ({ isOpen, onClose, currentUser }) => {
   const [selectedPlan, setSelectedPlan] = useState('monthly');
+  
+  if (!isOpen) return null;
   
   const plans = {
     monthly: {
@@ -31,8 +33,6 @@ const PremiumFeatures = ({ isOpen, onClose, currentUser }) => {
   };
 
   const currentPlan = plans[selectedPlan];
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -118,7 +118,12 @@ const PremiumFeatures = ({ isOpen, onClose, currentUser }) => {
 
           {/* Upgrade Button */}
           <div className="space-y-4">
-            <button className="w-full bg-orange-500 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-orange-600 transition-colors">
+            <button 
+              onClick={() => {
+                alert(`Premium ${selectedPlan === 'monthly' ? 'Monatlich' : 'Jährlich'} für €${currentPlan.price}/${currentPlan.period} - PayPal Integration folgt!`);
+              }}
+              className="w-full bg-orange-500 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-orange-600 transition-colors"
+            >
               Premium für €{currentPlan.price}/{currentPlan.period} aktivieren
             </button>
             
