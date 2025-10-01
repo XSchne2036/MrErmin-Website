@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import PremiumUpgrade from './PremiumUpgrade';
 
 const GOOGLE_CLIENT_ID = '611753612325-b1m49felg1moh1ublib3udb4n1n8k2j0.apps.googleusercontent.com';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
